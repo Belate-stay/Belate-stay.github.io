@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 破解图床防盗链：隐藏请求来源，让外部WebP/JPG图床正常加载图片 -->
+    <meta name="referrer" content="no-referrer">
+    <title>WZTI-王者荣耀人格测试</title>
+    <style>
+        /* === 1. 基础变量 (纯净浅紫主题) === */
+        :root {
+            --primary-color: #8E24AA;       
+            --primary-dark: #4A148C;        
+            --primary-light: #E1BEE7;       
+            --bg-color: transparent;           
+            --card-bg: #FFFFFF;             
+            --text-main: #333333;           
+            --text-subtitle: #6A1B9A;       
+            
+            --shadow-sm: 0 4px 6px rgba(142, 36, 170, 0.05);
+            --shadow-md: 0 10px 20px rgba(74, 20, 140, 0.15);
+            --shadow-float: 0 15px 35px rgba(142, 36, 170, 0.25); 
+            --shadow-option: 0 8px 20px rgba(74, 20, 140, 0.12);
+            --shadow-card: 0 6px 16px rgba(74, 20, 140, 0.08); 
+            
+            --ease-out: cubic-bezier(0.25, 0.8, 0.25, 1); 
+            --spring: cubic-bezier(0.34, 1.56, 0.64, 1); 
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #F8F4FA; 
+            color: var(--text-main);
+            overflow: hidden; 
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        #app-container {
+            width: 100%; max-width: 480px; height: 100vh; height: 100dvh; max-height: 900px;
+            position: relative;
+            box-shadow: var(--shadow-md); display: flex; flex-direction: column;
+            overflow: hidden; 
+            background-color: #F8F4FA;
+        }
+
+        /* === 高级动态网格渐变 === */
+        .ambient-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; pointer-events: none; overflow: hidden;
+        }
+
+        .color-blob {
+            position: absolute; border-radius: 50%; filter: blur(60px); 
+            opacity: 0.6; will-change: transform;
+        }
+
+        .blob-1 { width: 60vw; height: 60vw; max-width: 400px; max-height: 400px; background: #C5A0F0; top: -10%; left: -10%; animation: float1 2.8s ease-in-out infinite alternate; }
+        .blob-2 { width: 75vw; height: 75vw; max-width: 500px; max-height: 500px; background: #DDC0F5; bottom: -20%; right: -10%; animation: float2 3.0s ease-in-out infinite alternate; }
+        .blob-3 { width: 55vw; height: 55vw; max-width: 350px; max-height: 350px; background: #B3C5F2; top: 40%; left: 30%; animation: float3 3.2s ease-in-out infinite alternate; }
+        .blob-4 { width: 65vw; height: 65vw; max-width: 450px; max-height: 450px; background: #EBD6ED; top: 10%; right: -20%; animation: float4 3.4s ease-in-out infinite alternate; }
+
+        @keyframes float1 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(25vw, 20vh, 0) scale(1.2); } }
+        @keyframes float2 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-30vw, -15vh, 0) scale(1.1); } }
+        @keyframes float3 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-20vw, 25vh, 0) scale(1.3); } }
+        @keyframes float4 { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(-35vw, 15vh, 0) scale(0.9); } }
+
+        /* === 悬浮按钮 === */
+        .float-back-btn {
+            position: fixed; bottom: 35px; left: 25px;
+            width: 55px; height: 55px; border-radius: 50%;
+            background: rgba(248, 244, 252, 0.85); backdrop-filter: blur(5px); box-shadow: var(--shadow-float);
+            display: none; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 1000; color: var(--primary-color);
+            transform: translateX(-100px) scale(0.5); 
+        }
+        .float-back-btn:active { transform: scale(0.9) !important; transition: transform 0.1s; }
+        .float-back-btn svg { width: 28px; height: 28px; }
+
+        @keyframes waterDropIn { 0% { transform: translateX(-100px) scale(0.3); opacity: 0; } 100% { transform: translateX(0) scale(1); opacity: 1; } }
+
+        /* === 屏幕基础样式 === */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 30px 24px; display: flex; flex-direction: column;
+            opacity: 0; pointer-events: none; transform: translateY(20px);
+            transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+            overflow-y: auto; padding-bottom: 30px; z-index: 10; 
+        }
+        .screen.active { opacity: 1; pointer-events: auto; transform: translateY(0); z-index: 20; }
+        .screen.leaving { opacity: 0; transform: translateY(-20px); z-index: 15; }
+
+        /* === 封面 === */
+        #start-screen { justify-content: space-between; padding-top: 10vh; padding-bottom: 8vh; text-align: center; }
+        .start-top-content { display: flex; flex-direction: column; align-items: center; }
+        .main-logo { width: 135px; height: 135px; margin-bottom: 25px; object-fit: contain; border-radius: 20px; }
+        h1.main-title { font-size: 2.3rem; margin-bottom: 15px; background: linear-gradient(135deg, #4A148C, #8E24AA, #6A1B9A); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 3px; }
+        .system-start { font-family: 'Courier New', monospace; font-size: 0.95rem; color: rgba(142, 36, 170, 0.7); margin-bottom: 8px; letter-spacing: 2px; font-weight: bold; }
+        .subtitle-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.95rem; color: rgba(106, 27, 154, 0.5); margin-bottom: 35px; line-height: 1.8; letter-spacing: 1px; font-weight: 500; padding: 0 15px; }
+        .start-bottom-content { width: 100%; display: flex; justify-content: center; }
+        
+        .btn { width: 85%; padding: 16px 24px; font-size: 1.1rem; font-weight: bold; color: #FFFFFF; background: linear-gradient(90deg, #C264D6, #A638B6); border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 16px rgba(142, 36, 170, 0.25); transition: all 0.2s var(--ease-out); letter-spacing: 1.5px; }
+        .btn:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(142, 36, 170, 0.1); }
+
+        /* === 答题页面 === */
+        #question-screen { justify-content: flex-start; }
+        .progress-container { width: 100%; height: 8px; background-color: var(--card-bg); border-radius: 10px; margin-bottom: 25px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); flex-shrink: 0; }
+        .progress-bar { height: 100%; background-color: var(--primary-color); width: 0%; border-radius: 10px; transition: width 0.5s var(--ease-out); }
+        .question-header { font-family: 'Courier New', monospace; font-size: 0.95rem; color: var(--primary-color); font-weight: bold; margin-bottom: 15px; letter-spacing: 1px; flex-shrink: 0; }
+        .question-text { font-size: 1.35rem; font-weight: 800; line-height: 1.6; margin-bottom: 28px; color: var(--text-main); letter-spacing: 0.5px; min-height: 80px; white-space: pre-wrap; flex-shrink: 0; }
+        .options-container { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; padding-bottom: 20px; } 
+        .option-card { background-color: rgba(248, 244, 252, 0.85); backdrop-filter: blur(5px); border: 2px solid transparent; border-radius: 20px; padding: 18px 22px; font-size: 1.05rem; color: var(--text-main); box-shadow: var(--shadow-option); cursor: pointer; font-weight: 500; line-height: 1.5; transition: all 0.2s ease; position: relative; overflow: hidden; }
+        .option-card:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(74, 20, 140, 0.1); }
+        .option-card.selected { border-color: var(--primary-color); color: var(--primary-dark); font-weight: bold; transform: scale(0.98); box-shadow: 0 8px 25px rgba(74, 20, 140, 0.25); }
+        .ripple-fill { position: absolute; border-radius: 50%; background: rgba(142, 36, 170, 0.15); transform: scale(0); animation: ripple-fill-animation 0.4s ease-out forwards; pointer-events: none; z-index: 0; }
+        @keyframes ripple-fill-animation { to { transform: scale(4); opacity: 1; } }
+
+        /* === 解析加载与结果页 === */
+        #result-screen { align-items: center; text-align: center; padding-top: 40px; }
+        .loading-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
+        .spinner { width: 60px; height: 60px; margin-bottom: 30px; animation: rotate 2s linear infinite; }
+        .spinner circle { fill: none; stroke-width: 5; }
+        .spinner .track { stroke: rgba(142, 36, 170, 0.1); }
+        .spinner .path { stroke: var(--primary-color); stroke-linecap: round; animation: dash 1.5s ease-in-out infinite; }
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
+        @keyframes dash { 0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; } 50% { stroke-dasharray: 100, 200; stroke-dashoffset: -30px; } 100% { stroke-dasharray: 100, 200; stroke-dashoffset: -160px; } }
+        .analysis-progress-bg { width: 80%; height: 10px; background: rgba(142, 36, 170, 0.1); border-radius: 20px; overflow: hidden; margin-top: 20px; margin-bottom: 10px; }
+        .analysis-progress-fill { width: 0%; height: 100%; background: var(--primary-color); border-radius: 20px; transition: none; }
+        .analysis-text { font-family: 'Courier New', monospace; color: var(--primary-dark); font-weight: bold; margin-bottom: 5px; }
+        .analysis-subtext { font-size: 0.85rem; color: var(--text-subtitle); }
+
+        .result-content { min-height: 100%; display: none; flex-direction: column; align-items: center; width: 100%; animation: fadeInUp 0.6s var(--ease-out) forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .result-title { 
+            font-family: 'Courier New', monospace; 
+            font-size: 1.1rem; color: var(--text-subtitle); 
+            margin-top: 20px; margin-bottom: 20px; 
+            font-weight: bold; letter-spacing: 2px;
+        }
+        
+        .result-name { 
+            font-size: 3.2rem; 
+            margin-bottom: 35px; 
+            font-weight: 700; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #D4A373 0%, #8E24AA 100%); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .result-image { 
+            width: 140px; height: 140px; 
+            flex-shrink: 0; 
+            border-radius: 35px; 
+            background-color: var(--primary-light); 
+            margin-bottom: 40px; 
+            box-shadow: 0 8px 30px rgba(142, 36, 170, 0.12); 
+            object-fit: cover; 
+            border: 4px solid rgba(255, 255, 255, 0.65); 
+        }
+
+        .result-slogan {
+            font-size: 1.05rem; color: #C2185B; font-style: italic; font-weight: 800;
+            margin-bottom: 25px; padding: 0 15px; 
+            line-height: 1.5; text-align: center;
+            word-break: keep-all; 
+            text-wrap: balance; 
+        }
+        .result-slogan::before { content: "“"; font-size: 1.5rem; vertical-align: bottom; margin-right: 4px; }
+        .result-slogan::after { content: "”"; font-size: 1.5rem; vertical-align: top; margin-left: 4px; }
+
+        .hero-card {
+            width: 100%; 
+            background: linear-gradient(145deg, rgba(255,255,255,0.75), rgba(243,229,245,0.6)); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px; padding: 20px; margin-bottom: 25px; 
+            box-shadow: var(--shadow-card); 
+            border: 1px solid rgba(255, 255, 255, 0.6); 
+            text-align: left;
+        }
+
+        .hero-card-title { font-size: 0.9rem; color: var(--text-subtitle); font-weight: bold; margin-bottom: 15px; letter-spacing: 1px; display: flex; align-items: center;}
+        .hero-card-title::before { content: ''; display: inline-block; width: 4px; height: 14px; background: var(--primary-color); margin-right: 8px; border-radius: 2px;}
+        .hero-info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        
+        .hero-avatar {
+            width: 65px; height: 65px; border-radius: 16px; background-color: #E1BEE7; border: 2px solid rgba(142, 36, 170, 0.3);
+            object-fit: cover; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 0.7rem; color: #8E24AA; text-align: center; overflow: hidden;
+        }
+        .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .hero-name { font-size: 1.6rem; font-weight: 900; color: var(--primary-dark); margin-left: 8px; }
+        .hero-desc { font-size: 0.95rem; line-height: 1.5; color: var(--text-main); }
+
+        .result-desc { 
+            background: linear-gradient(145deg, rgba(255,255,255,0.75), rgba(243,229,245,0.6)); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 24px; border-radius: 20px; 
+            box-shadow: var(--shadow-card); 
+            margin-bottom: 30px; text-align: left; 
+            border: 1px solid rgba(255, 255, 255, 0.6); 
+            width: 100%;
+        }
+
+        /* === 人格详解与英雄解析模块的专属高级排版 === */
+        .desc-tagline {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: var(--primary-dark);
+            margin-bottom: 18px;
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 2px dashed rgba(142, 36, 170, 0.2);
+            letter-spacing: 1px;
+        }
+        .desc-section {
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text-main);
+            text-align: justify;
+        }
+        .desc-section:last-child {
+            margin-bottom: 0;
+        }
+        .desc-label {
+            font-weight: 900;
+            color: #D81B60; 
+            margin-right: 4px;
+            display: inline-block;
+        }
+
+        .about-btn { font-size: 0.9rem; color: var(--primary-color); text-decoration: underline; background: none; border: none; cursor: pointer; margin-bottom: 15px; font-weight: bold;}
+        
+        .disclaimer { 
+            font-size: 0.75rem; color: #999; text-align: center; line-height: 1.5; 
+            padding: 0 10px; margin-top: auto; padding-bottom: 10px; padding-top: 30px;
+        }
+
+        /* === 现代化关于作者页面 === */
+        #about-screen { padding: 140px 30px 0px 30px; align-items: flex-start; text-align: left; }
+        
+        .about-title { 
+            font-size: 2.9rem; 
+            font-weight: 900; 
+            white-space: nowrap; 
+            background: linear-gradient(135deg, #1A1A1A 0%, #D81B60 50%, #8E24AA 100%);
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            margin-bottom: 65px; 
+            letter-spacing: -1px;
+            width: 100%;
+        }
+        
+        .about-list { display: flex; flex-direction: column; width: 100%; gap: 48px; }
+        
+        .about-item-modern { 
+            display: flex; flex-direction: column; 
+            position: relative; 
+        }
+
+        .about-q { 
+            position: relative; 
+            padding-left: 14px; 
+            font-size: 0.95rem; 
+            color: rgba(74, 20, 140, 0.9); 
+            font-weight: 600; 
+            margin-bottom: 6px; 
+            letter-spacing: 1px; 
+            display: flex;
+            align-items: center;
+        }
+        .about-q::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 14px; 
+            width: 3px;
+            background: rgba(142, 36, 170, 0.45); 
+            border-radius: 2px;
+        }
+
+        .about-a { 
+            padding-left: 14px; 
+            font-size: 1.6rem; 
+            font-weight: 800; 
+            line-height: 1.4; 
+        }
+        .about-a-gradient {
+            background: linear-gradient(135deg, #1A1A1A 0%, #D81B60 50%, #8E24AA 100%);
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        
+        .author-avatar {
+            width: 140px; height: 140px; 
+            flex-shrink: 0; 
+            border-radius: 12px; 
+            object-fit: cover; 
+            margin-top: 5px;
+            box-shadow: 0 8px 30px rgba(142, 36, 170, 0.12); 
+            display: block;
+        }
+
+        .contact-text {
+            font-size: 1.4rem; 
+            font-weight: 400; 
+            font-style: italic; 
+            color: rgba(51, 51, 51, 0.55); 
+            line-height: 1.6;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="ambient-bg">
+        <div class="color-blob blob-1"></div>
+        <div class="color-blob blob-2"></div>
+        <div class="color-blob blob-3"></div>
+        <div class="color-blob blob-4"></div>
+    </div>
+
+    <!-- 1. 欢迎屏幕 -->
+    <section id="start-screen" class="screen active">
+        <div class="start-top-content">
+            <img src="https://img.cdn1.vip/i/69dcce9d7d840_1776078493.webp" class="main-logo" alt="LOGO">
+            <h1 class="main-title">WZTI 峡谷图鉴</h1>
+            <div class="subtitle-group">
+                <p class="system-start">>>> SYSTEM_START</p>
+                <p class="subtitle-text">
+                    MBTI过时了，SBTI也过时了！<br>
+                    现在看看你在王者里究竟是什么货色！
+                </p>
+            </div>
+        </div>
+        <div class="start-bottom-content">
+            <button class="btn" onclick="startTest()">连接峡谷数据网络</button>
+        </div>
+    </section>
+
+    <!-- 2. 答题屏幕 -->
+    <section id="question-screen" class="screen">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="question-header" id="question-counter">Question 01 / 16</div>
+        <h2 class="question-text" id="question-text">加载中...</h2>
+        <div class="options-container" id="options-container">
+        </div>
+    </section>
+
+    <!-- 3. 结果加载与展示屏幕 -->
+    <section id="result-screen" class="screen">
+        <div class="loading-view" id="loading-view">
+            <svg class="spinner" viewBox="0 0 60 60">
+                <circle class="track" cx="30" cy="30" r="26"></circle>
+                <circle class="path" cx="30" cy="30" r="26"></circle>
+            </svg>
+            <div class="analysis-text" id="analysis-text">INITIALIZING... 0%</div>
+            <div class="analysis-progress-bg">
+                <div class="analysis-progress-fill" id="analysis-fill"></div>
+            </div>
+            <div class="analysis-subtext" id="analysis-subtext">提取局内行为锚点...</div>
+        </div>
+
+        <div class="result-content" id="result-content">
+            <div class="result-title">YOUR <b style="font-weight: 900; font-size: 1.25em; margin: 0 2px;">WZTI</b> TYPE IS</div>
+            <h1 class="result-name" id="result-name">加载中</h1>
+            
+            <img class="result-image" src="" alt="人格专属头像" id="result-image">
+            
+            <div class="result-slogan" id="result-slogan">加载中...</div>
+
+            <!-- 本命英雄推测卡片 -->
+            <div class="hero-card">
+                <div class="hero-card-title">系统推测 - 本命英雄</div>
+                <div class="hero-info-row">
+                    <div class="hero-avatar">
+                        <img id="hero-image" src="https://via.placeholder.com/65/E1BEE7/8E24AA?text=Hero" alt="Hero">
+                    </div>
+                    <div class="hero-name" id="hero-name">英雄名</div>
+                </div>
+                <div class="hero-desc" id="hero-desc">正在等待后续版本详细英雄分析文案载入...</div>
+            </div>
+
+            <!-- 详细人格分析卡片 -->
+            <div class="result-desc">
+                <div class="hero-card-title">系统分析 - 人格详解</div>
+                <div id="result-desc-text">计算中...</div>
+            </div>
+            
+            <button class="btn" style="margin-bottom: 20px;" onclick="resetTest()">再测一次</button>
+            <button class="about-btn" onclick="showAbout()">关于作者</button>
+            <div class="disclaimer">声明：本网页不作商用，无广告不收费。<br>测试结果仅供娱乐，无参考价值。<br>人格分析中有攻击性词语纯属玩笑，切莫当真！</div>
+        </div>
+    </section>
+
+    <!-- 4. 现代化关于作者屏幕 -->
+    <section id="about-screen" class="screen">
+        <h1 class="about-title">你想知道什么？</h1>
+        <div class="about-list">
+            <div class="about-item-modern">
+                <div class="about-q">叫什么？</div>
+                <div class="about-a about-a-gradient">胡勃阳</div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">男女？</div>
+                <div class="about-a about-a-gradient">男</div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">几岁？</div>
+                <div class="about-a about-a-gradient">19</div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">长啥样？</div>
+                <div class="about-a">
+                    <img class="author-avatar" src="https://img.cdn1.vip/i/69dfa85598bbf_1776265301.webp" alt="作者照片">
+                </div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">提出意见？</div>
+                <div class="about-a">
+                    <div class="contact-text">2546933984@qq.com</div>
+                    <div class="contact-text">hub877610@gmail.com</div>
+                </div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">为何做这个？</div>
+                <div class="about-a about-a-gradient">闲的没事儿干</div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">发布网页？</div>
+                <div class="about-a about-a-gradient">
+                    <a herf="https://github.com/">GitHub个人主页</a>
+                </div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">如何打赏？</div>
+                <div class="about-a" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+                    <span class="about-a-gradient">v我50:</span>
+                    <span class="contact-text" style="font-weight: 400;">belate_coder</span>
+                </div>
+            </div>
+            <div class="about-item-modern">
+                <div class="about-q">版本号？</div>
+                <div class="about-a">
+                    <div class="contact-text" style="font-style: normal;">TestBeta 5.2</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 通过外边距自动推底，且上方保证充足留白。配合 #about-screen 的 padding-bottom: 0px 实现完美贴底 -->
+        <div class="disclaimer" style="width: 100%; margin-top: auto; padding-top: 60px;">
+            声明：本网页不作商用，无广告不收费。<br>测试结果仅供娱乐，无参考价值。<br>人格分析中有攻击性词语纯属玩笑，切莫当真！
+        </div>
+    </section>
+</div>
+
+<!-- 答题页悬浮返回按钮 -->
+<div id="prev-btn" class="float-back-btn" onclick="prevQuestion(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+</div>
+
+<!-- 关于作者页专属悬浮返回按钮 -->
+<div id="about-back-btn" class="float-back-btn" onclick="hideAbout()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+</div>
+
+<script>
+    /* =========================================================
+       1. 测试数据 - 16道题及选项文本
+       ========================================================= */
+    const questionsData = [
+        { question: "BP阶段，你是中路，在4楼。轮到你选英雄时一看打野、边路和辅助都选了法师，此时你？", options: ["没啥问题，该玩啥玩啥", "单扣一个6，然后选其他位置的英雄演他们一把", "这还玩个毛？重开！", "选个没玩过的，以免输了掉战力"] },
+        { question: "中后期，自家0-8的西施在自己眼前对面娜可露露被秒了，看了一下面板发现她出了法穿鞋、大书、帽子...此时你？", options: ["没啥问题，该咋玩咋玩", "单扣一个6、回城嘲讽或者“干得漂亮！”", "给出实质性建议，让她出一些防御装备或者让她多看小地图", "直接问候其父母"] },
+        { question: "总比分2-20，经济落后8000的情况下，你会？", options: ["发起投降，并通知队友领右上角福袋", "拒绝投降，并始终相信可以逆风翻盘", "观察队友投降情况，如果确定不可能投降成功就投一票投降", "无视投票继续操作"] },
+        { question: "单人排位中遇到无理取闹女朋友和宠妻狂魔男朋友，单吃你兵线还满血吃你血包，你会？", options: ["啥也不说，直接开摆，也吃他兵线抢他Buff", "屏蔽情侣，心平气和继续游戏", "试图与她讲道理论对错", "直接问候其父母"] },
+        { question: "2-8的小乔被你队友压力了大半局，突然开麦说“对不起，我是女生我不太会玩。”且声音甜美温柔，此时你会？", options: ["“我TM管你男的女的老的少的......”", "安慰小乔，告诉打野差不多得了，好好打还能赢", "更加认真操作装高手，内心暗爽", "“妈妈...妈妈妈妈...”"] },
+        { question: "如果你要找游戏搭子，那你更希望以下哪种人成为你的游戏搭子？", options: ["御姐音、黑暗系强制爱的女王", "叽叽喳喳，没完没了的小修勾", "技术一流，人狠话不多的野王", "贵10大佬，共享全皮肤随便用"] },
+        { question: "一波团战后，就你活着，你会？", options: ["疯狂清兵守塔，像个无助的保洁阿姨", "回城，然后发“干得漂亮”或者“请求集合”", "打字：“经济落后打啥团？” ，然后尝试一个人去对面偷塔", "心想：你们都死了，看我怎么一打五力挽狂澜吧，到时候给我全体起立！"] },
+        { question: "你买皮肤的情况是？", options: ["原皮战士，主打一个环保游戏", "看皮肤质量和自己玩不玩再决定买不买", "白嫖也能嫖到很多优质皮肤", "出一个买一个，V10标记一亮，队友都得喊爹"] },
+        { question: "开局选英雄，你通常会？", options: ["秒选打野或射手，我要C！", "补位，队友需要什么我就玩什么", "看皮肤，哪个皮肤帅选哪个", "只玩自己本命英雄"] },
+        { question: "敌方：甄姬（中路）+花木兰（边路）+马超（打野）+公孙离（射手）+孙膑（辅助）\n我方：吕布（边路）+兰陵王（打野）+后羿（射手）+瑶（辅助）\n此时我方5楼的最佳选择为？（不考虑技术情况）", options: ["不知火舞", "妲己", "弈星", "王昭君"] },
+        { question: "你在游戏里找过CP吗？", options: ["没有，我是单机王者，我的CP是防御塔", "随缘，遇到声音好听、玩得来的就多聊两句", "每天都在大厅发“cpdd，我玩瑶，你野王”", "只和现实朋友玩，网恋？不如去峡谷种水稻"] },
+        { question: "你经济全场第一，这时你更想？", options: ["不管队友继续刷、等比对面高5000在打团", "发信号“请求集合”，然后自己冲进人堆开团", "认为自己已经无敌去对面野区大摇大摆的反野", "叫队友集合准备打团或者控龙带线推进"] },
+        { question: "以下描述最符合你的是？", options: ["李信带传送、马超死盯中线、后羿承担野区", "变声器+女头像+女英雄+华丽皮肤，只为一个误打误撞入成都的男人", "看见对面选小乔就选兰陵王，克制链死死掌握，让对面痛不欲生", "默默无闻好好发育，努力升段位打战力"] },
+        { question: "上把坑了队友，你们队的金牌小乔邀请你组队，进入房间后你会先说什么？", options: ["“怎么？还没被我坑够？”", "“对不起姐姐我不是故意的。”", "“上把要不是被蚊子和键位克制了，还有手机太卡、对面针对、肚子太饿...”", "“上把确实没发挥好，送你个传说皮这事翻篇，OK？”"] },
+        { question: "清完兵线干点什么？", options: ["塔下呆着，顺便和队友或对面聊聊天", "去吃美食，对面的小猪或者蜥蜴小鸡什么的都很美味", "跟着自家打野，他刷野就也刷野，他打架就跟着打架", "帮助队友对线或争取中立资源"] },
+        { question: "巅峰赛1800，你玩貂蝉刚做出 圣杯满CD，对面4人抱团准备压塔， 你会？", options: ["塔下等兵线准备反打，就算打不过至少也能清个兵", "果断放塔，线没有命重要，死了节奏就断了", "请求集合后上去开团，没打过就是队友不来守塔", "观察下队友都在干嘛再决定是否开喷"] }
+    ];
+
+    /* =========================================================
+       2. 数据埋点：雷达数值积分规则表 
+       ========================================================= */
+    const scoresData = [
+        [ {心态:1, 友善:1, 常值:1}, {心态:-2, 友善:-1, 德华:1, 操作:-1}, {心态:-1, 社交:1, 常值:2, 莽撞:-1}, {心态:1, 友善:1, 莽撞:-1} ],
+        [ {心态:2, 友善:2, 操作:1}, {心态:-1, 友善:-1, 操作:-1}, {友善:3, 社交:2, 意识:2}, {友善:-3, 心态:-3, 莽撞:1, 社交:1, 德华:1} ],
+        [ {心态:-2, 友善:1, 莽撞:2, 常值:-1}, {操作:-1, 意识:-2, 心态:2}, {常值:-2, 意识:1, 莽撞:-1}, {操作:1, 社交:-1, 意识:1} ],
+        [ {心态:-2, 社交:1, 意识:1, 经济:1}, {心态:2, 意识:1, 常值:1}, {常值:-2, 社交:2, 莽撞:1}, {友善:-3, 心态:-2, 莽撞:2, 社交:2, 德华:1} ],
+        [ {瓦值:-3, 友善:-2, 德华:-2}, {友善:2, 社交:2, 常值:1}, {常值:-1, 意识:1, 操作:1}, {瓦值:6, 社交:3, 友善:3, 常值:-5} ],
+        [ {瓦值:4, 常值:-1, 德华:2, 社交:1}, {常值:1, 友善:1, 瓦值:-2, 社交:2}, {常值:1, 瓦值:-1, 操作:1, 意识:1, 莽撞:-1}, {常值:1, 友善:1, 社交:1, 操作:1, 财富:-1} ],
+        [ {常值:1, 操作:1, 友善:1, 德华:-1, 莽撞:-2}, {心态:-1, 操作:1, 社交:1}, {社交:2, 心态:-1, 操作:-1, 意识:-1, 莽撞:2}, {莽撞:2, 心态:1, 操作:2} ],
+        [ {社交:-1, 财富:-1, 德华:-1}, {常值:1, 操作:1, 财富:2}, {常值:1, 财富:-1}, {财富:5, 常值:-2, 社交:3, 德华:2} ],
+        [ {操作:2, 意识:2, 经济:1, 莽撞:1}, {心态:1, 社交:1, 友善:1, 莽撞:-1}, {财富:3, 操作:1, 社交:1}, {经济:1, 操作:2, 意识:1, 常值:1, 莽撞:-1} ],
+        [ {莽撞:2, 操作:1, 常值:1, 经济:1}, {意识:-3, 操作:-2, 德华:3, 经济:-1}, {意识:3, 操作:1, 莽撞:-1}, {意识:2, 操作:1, 社交:1, 经济:-1, 莽撞:-1} ],
+        [ {操作:1, 社交:-1}, {常值:1, 社交:1}, {社交:1, 财富:2, 常值:-1}, {常值:1} ],
+        [ {经济:3, 意识:-1, 心态:1}, {莽撞:3, 操作:2, 德华:1}, {莽撞:2, 操作:1, 意识:-2, 德华:2}, {意识:2, 常值:1, 操作:1, 经济:1} ],
+        [ {经济:3, 常值:-1, 社交:-2}, {社交:1, 常值:-3, 瓦值:-2, 财富:1}, {常值:-1, 友善:-2, 莽撞:1, 德华:1}, {社交:-1, 友善:1, 常值:2, 操作:1, 经济:1} ],
+        [ {社交:1, 友善:-1, 心态:1, 莽撞:1}, {瓦值:2, 常值:-1}, {心态:1, 社交:2, 德华:5}, {财富:4, 社交:2, 瓦值:-2, 常值:-2} ],
+        [ {社交:2, 友善:1, 操作:-1, 意识:-2, 经济:-2}, {经济:2, 意识:1, 操作:1, 常值:1}, {经济:1, 社交:1, 友善:1}, {经济:2, 意识:2, 操作:2, 常值:1} ],
+        [ {莽撞:1, 操作:2, 经济:1, 意识:1, 常值:1}, {经济:-1, 莽撞:-2, 操作:-1, 心态:1}, {心态:-1, 莽撞:2, 意识:-1, 常值:-1, 操作:1}, {社交:1, 经济:1, 意识:1, 常值:1} ]
+    ];
+
+    /* =========================================================
+       3. 人格档案库配置 (Beta 4.7.9 全新详细文案与HTML渲染排版)
+       ========================================================= */
+    const resultsData = {
+        "永远发育型": { 
+            slogan: "一人你吃三路，团战你零输出", 
+            img: "https://img.cdn1.vip/i/69de4c89df265_1776176265.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“峡谷收割机”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>你的眼里没有队友，没有防御塔，只有红蓝Buff、小龙和三路兵线。你在玩一款名为《峡谷农场》的单机游戏。中路打团？不行，我要去下路带线。高地被破？等一下，我先刷个野猪。“等我六神装，我包C的。”</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>吸血鬼转世！你一人吃三路，团战零输出。当你带着12000的经济，全场最豪华的装备在野区散步时，你的四个队友正被对面在塔下按着摩擦。你不是在发育，你是在为对面养猪。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>极大地拉高了队伍的纸面总经济，并且让对面的兵线永远过不了河道——因为全被你吃光了。</div>
+            `
+        },
+        "五杀妄想型": { 
+            slogan: "每次冲进人堆都脑补五杀，结果你的尸体摆了五个不同的姿势。", 
+            img: "https://img.cdn1.vip/i/69dd00ad56f5f_1776091309.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“峡谷莽夫”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>你大概是短视频集锦看多了，总觉得自己是爽文男主。只要看到对面五个人站在一起，你的大脑就会分泌多巴胺：“优势在我！可以一打五！”然后你一个位移冲进人堆，还没看清敌人的脸，血条就瞬间清空。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你的字典里没有“拉扯”和“撤退”，只有“冲锋”和“去世”。你以为你是天神下凡，其实在对面眼里你就是葫芦娃救爷爷里的那个大娃——白送。没有那个实力，就别犯那个公主病。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>完美的肉身开团机器！虽然你总是第一个死，但你这不怕死的精神，偶尔也能骗出对面几个关键的大招。</div>
+            `
+        },
+        "团战蒸发型": { 
+            slogan: "团战还没打响，你的屏幕已经比你的未来还暗了", 
+            img: "https://img.cdn1.vip/i/69de5c022efda_1776180226.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“移动提款机”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>一种神奇的生物，你似乎永远找不到自己在团战中的位置。不知不觉走到前排的射手，探没视野草丛的法师。团战刚开始，大家还没看清你怎么操作的，系统就播报你已经被秒了。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>兄弟，你选的是英雄，不是炮车！你的血条脆得像个薯片，走位像个无头苍蝇。对面的刺客看到你，就像看到了移动的ATM机。你团战0输出，全靠挨打在贡献参团率。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>用自己的生命为队友探测了对面的爆发伤害究竟有多高，以献祭流的方式加快了游戏进程，拒绝折磨。</div>
+            `
+        },
+        "四大皆空型": { 
+            slogan: "你的技能是峡谷里的无人机表演——纯观赏，零伤害", 
+            img: "https://img.cdn1.vip/i/69de4c89c4928_1776176265.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“人体描边大师”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>峡谷和平大使。你的技能仿佛长了眼睛，总能完美地避开敌方所有英雄。钟馗的钩子只能钩空气，墨子的炮专门打小兵，百里守约三枪连对面的毛都擦不到。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你不是在打输出，你是在给对面画轮廓！你的操作让人感到窒息，每次团战你都在手忙脚乱地空技能，宛如一场滑稽的无实物表演。如果技能空了能返还蓝量，你这局连家都不用回。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>证明了这是一款充满爱与和平的游戏。你宽广的胸怀和极差的准头，让对手感受到了如沐春风般的安全感。</div>
+            `
+        },
+        "峡谷公务员": { 
+            slogan: "人机一般的存在，甚至会被问一句是不是挂机被托管了", 
+            img: "https://img.cdn1.vip/i/69de5c9096f46_1776180368.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“情绪稳定的牛马”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>峡谷中最庞大的基石群体。你不吭声、不惹事，该对线对线，该打团打团。面对压力怪的辱骂你心如止水，面对搞心态的队友你波澜不惊。你就像个设定好程序的AI，按部就班地完成一局又一局的游戏。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你的游戏生涯平庸且乏味。你没有carry全场的高光时刻，也没有坑到令人发指的地步。你太平庸了，平庸到打完一局大家连你的ID都不会记住。你就像流水线上的螺丝钉，拔掉你换另一个，没有任何区别。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>精神病院（王者峡谷）里的唯一正常人。在全是奇葩、挂机、喷子和抽象怪的环境里，你那平庸的稳定感，简直就是稳住底盘的定海神针。</div>
+            `
+        },
+        "泉水指挥型": { 
+            slogan: "懂哥接麦，全员闭嘴", 
+            img: "https://img.cdn1.vip/i/69de5c977cf7c_1776180375.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“嘴强王者”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>团战爆发不到一秒，你第一个阵亡。当你的屏幕变成黑白色，你的表演才刚刚开始。从出装到走位，从带线到控龙，你用近乎KPL教练的口吻指导着剩下的四名队友。“你怎么不上啊！”“那波你交闪现稳杀的！”</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>理论知识王者百星，实际操作青铜黑铁。你指点江山的样子很帅，但你0-5的战绩真的很狼狈。如果你把用来“教别人玩游戏”的脑细胞分一半到自己的操作上，你也不至于天天呆在泉水里看上帝视角。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>提供了高情绪价值的“场外解说”服务，用滑稽的反差感缓解了团队输掉比赛的悲伤。</div>
+            `
+        },
+        "天赋型选手": { 
+            slogan: "果然，答案说明所有", 
+            img: "https://img.cdn1.vip/i/69de5c02b4900_1776180226.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“通天代”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>峡谷里的真神，极其稀有的珍稀动物。你的脑子里自带全图透视和技能CD计时器，操作行云流水且从不拖泥带水。即便面对队友的逆天操作，你也能冷哼一声，默默把经济刷起来，然后在绝境中一波1v5接管比赛。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>（毫不客气地说）你最大的缺点就是太完美了，以至于显得有些孤芳自赏。有时候你的操作太超前，导致那群凡人队友根本跟不上你的节奏，最后你只能无奈地发一句“带不动”。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>黑暗匹配机制中唯一的光。你是所有人排位连败时最渴望匹配到的那条粗壮的大腿，是这破游戏还能让人玩下去的终极理由。</div>
+            `
+        },
+        "压力队友型": { 
+            slogan: "嘴比地沟里的粑粑还要臭，快去吃屎！", 
+            img: "https://img.cdn1.vip/i/69de5ca8ea878_1776180392.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“祖安钢琴家”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>你的指尖不仅能释放技能，更能释放族谱保卫战的信号。顺风四海皆兄弟，逆风全家*。一旦队友出现哪怕0.1秒的失误（比如没跟上你那极其拉跨的开团），你的小喇叭和键盘就会瞬间高强度运作，打字速度堪比专业速记员。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你花在打字和开麦上的精力远超游戏本身。一有劣势就发起投降，队友不点你就开始在泉水挂机发小作文。你的心态脆得像张纸，素质低得像个原始人。如果王者有“打字输出面板”，你绝对是国服第一。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>团队抗压能力的天然试金石。你用极其恶劣的言语，倒逼队友为了“打你的脸”而发挥出120%的实力去赢下比赛。</div>
+            `
+        },
+        "富公富婆型": { 
+            slogan: "钱全充游戏了，还不如捐给马化腾", 
+            img: "https://img.cdn1.vip/i/69de5c023baae_1776180226.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“行走的小金库”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>“既然技术上无法碾压你，那就在特效上闪瞎你。”你深谙钞能力法则，每次登场伴随着V10的尊贵光环和最新款的典藏皮肤。哪怕你玩个瑶，也要穿最贵的衣服挨最毒的打。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你的英雄出场动画，比你在一场团战中存活的时间还要长。买再多的皮肤，也掩盖不了你那僵硬的走位和拉胯的意识。当一个0-10的典藏皮李白死在对面塔下时，你不仅输了游戏，还输了排面。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>游戏公司财报的顶梁柱！正是因为有了你们无私的充值，腾讯的服务器才能稳定运行，白嫖玩家也因为你共享的皮肤而在心里默默喊你一声“义父”。</div>
+            `
+        },
+        "CPDD型": { 
+            slogan: "带中央空调的公交车？", 
+            img: "https://img.cdn1.vip/i/69de5c02650e1_1776180226.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“峡谷交际花”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>输赢不重要，重要的是有没有搭子。游戏大厅是你永远的家，“CPDD，我玩辅助，你打野”。你热衷于挂情侣标、改情侣名，游戏对你来说只是一个相亲软件的插件。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>别在峡谷种水稻了，去现实中谈个恋爱吧！天天在游戏里哥哥妹妹地叫，一到逆风局CP大难临头各自飞。你们那些腻腻歪歪的连体婴操作，不仅恶心了对手，更恶心了单排的队友。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>腾讯社交帝国的忠实拥趸。你们的存在让王者荣耀始终保持着超高的社交热度，促进了游戏内亲密道具和改名卡的销量。</div>
+            `
+        },
+        "驴德华型": { 
+            slogan: "破三高怎么输，你和德华写本书！", 
+            img: "https://img.cdn1.vip/i/69de5bfb33832_1776180219.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“嘴硬王者”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>你的精神内核高度契合某位天天戴着痛苦面具的吕姓主播。在你的世界里，自己永远是无懈可击的操作怪，如果死了，那一定是“屏幕断触了”、“手机太烫了”、“被蚊子咬了”或者是“键位有问题”。战绩打成2-22，你照样有狗叫权给队友来上一首大眼睛。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>承认自己菜有那么难吗？你的操作就像是帕金森晚期患者在玩连连看，又菜又爱玩，又菜又爱装。你对团队最大的贡献，就是用极低的下限拉高了对面玩家的游戏体验，堪称敌方指定的“送分童子”。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>没你开不了比赛，不是四个队友带不起，而是带飞对面五个更有性价比。</div>
+            `
+        },
+        "瓦型": { 
+            slogan: "兄弟，找妈妈去隔壁", 
+            img: "https://img.cdn1.vip/i/69de5bfb7f869_1776180219.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“峡谷沸羊羊”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>完美继承了无畏契约“瓦学弟”的卑微精神。只要听到麦克风里传来一句夹着嗓子的“谢谢哥哥/姐姐”，你的智商、尊严和游戏理解瞬间清零。为了那个连长相都不知道的网线另一端，你心甘情愿让出所有红蓝Buff，满血吃血包你还要夸她吃得优雅。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>醒醒吧！你以为你在玩浪漫爱情游戏，其实你只是个赛博提款机和无情的挡刀肉盾。别人拿你当“电子宠物”，你还在那儿傻乐。游戏里当舔狗，不仅舔不到爱情，连分都要掉光。你的骨气甚至不如超级兵！</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>峡谷生态链底层的奉献者，极大地促进了游戏内的社交繁荣，且为那些需要情绪价值的玩家提供了最优质的服务。</div>
+            `
+        },
+        "瓦德华型": { 
+            slogan: "同时符合德华的形象和瓦学弟的形象，莫非德华开自瞄？", 
+            img: "https://img.cdn1.vip/i/69de5bfb7f869_1776180219.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“峡谷究极缝合怪”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>极其罕见的终极隐藏人格！你完美融合了德华的痛苦面具和瓦学弟的沸羊羊属性。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你不仅操作下饭、无能狂怒，还经常做出让队友满头问号的逆天举动，系统都无法预测你的下一步！</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>整个峡谷独一无二的传说，改变游戏规则的终极变数。</div>
+            `
+        },
+        "抽象怪": { 
+            slogan: "你怎么选的？是人？我是真没招了", 
+            img: "https://img.cdn1.vip/i/69de4cc05894a_1776176320.webp",
+            desc: `
+            <div class="desc-tagline">确诊为“不可名状的混沌物”</div>
+            <div class="desc-section"><span class="desc-label">【人格画像】</span>恭喜你，你的脑回路突破了人类的理解范畴！你可能是边开着麦大骂队友，边反手给对面送了个人头；也可能是出了六双鞋的关羽在泉水里跑马拉松。你的每一个选项都在互相冲突，系统根本无法用正常的逻辑定义你。</div>
+            <div class="desc-section"><span class="desc-label">【致命吐槽】</span>你的精神状态显然已经领先当前版本好几个世纪了！建议你放下手机，去外面的世界看看。你的存在本身就是对排位机制的嘲弄，排到你的队友，赛后大概率需要挂个心理科的号。</div>
+            <div class="desc-section"><span class="desc-label">【核心价值】</span>你为毫无新意的游戏对局注入了极致的不可预测性。你是各大短视频平台“高血压名场面”的绝佳缔造者，是行为艺术在游戏界的先锋代表。</div>
+            `
+        }
+    };
+
+    /* =========================================================
+       4. 本命英雄深度解析档案库 (Beta 5.1 新增)
+       ========================================================= */
+    const heroDescData = {
+        "驴德华型": {
+            "吕布": "峡谷最经典的“跳大等死”型绝活哥。你热衷于用大招跳进五个人的包围圈，落地瞬间蒸发，然后开麦怒吼“我大五个你们怎么不上？！”你总觉得自己是奉先在世，其实笨重得像个沙袋。不过必须承认，你后期那一刀真伤确实毁天灭地，这也成了你每次战绩1-8却依然嘴硬“我能C”的唯一资本。",
+            "后羿": "你是那种一声不吭直接锁后羿的纯正“自闭吸血鬼”。哪怕被对面刺客抓成提款机，你也绝不交流，只会默默复活、继续在中路清线。你的走位极其死板，全靠站撸。但你的价值在于，只要队友愿意像保护亲爹一样死保你，你闭着眼睛按住普攻键，偶尔也能神奇地拿下三杀。",
+            "米莱狄": "拒绝人类交流，只和你的机械小兵作伴。你玩的是一个单机拆迁游戏，团战？不去。支援？没空。你的人生目标就是把对面的水晶磨掉。虽然你的战绩往往惨不忍睹，参团率低得令人发指，但在偷家这一块，你确实用最猥琐的打法，干了最让对面高血压的事。"
+        },
+        "瓦型": {
+            "武则天": "你用全峡谷最贵的英雄，打出了最低微的姿态。你的V10图标闪闪发光，但你的大招只为了给你的“哥哥/姐姐”拿个助攻。你证明了金钱确实买不来尊严，但你这种“为你花钱为你开全图视野”的顶级赛博财力供养，绝对是每个海王梦寐以求的极品电子宠物。",
+            "嫦娥": "囊中羞涩的你，选择了嫦娥这个看似柔弱实则是个法坦的英雄来作为你的“挡刀工具”。你心甘情愿榨干自己的蓝量和血条，只为替你的CP抗下致命一击。你是一块拥有绝美外表的终极肉盾，将“舔狗的自我修养”演绎到了物理层面的极致。"
+        },
+        "富公富婆型": {
+            "西施": "优雅，太优雅了。你穿着最华丽的游龙清影，用最从容的心态拉扯对面。即使队友在互喷，你也能微笑着在泉水里欣赏自己的回城特效。你用金钱垫高了你的格局，你的技能不仅控住了敌人的走位，更展现了什么是“有钱人的松弛感”。",
+            "瑶": "终极皮肤展示架！你玩游戏的核心目的就是为了展示新出的典藏或者情人节限定。你骑在野王的头上，左手一杯奶茶右手按个护盾。虽然偶尔被击落会让你有点烦躁，但只要你的皮肤特效够亮，你就不在乎这把是赢是输，毕竟排面不能丢。",
+            "花木兰": "你拥有花木兰全套昂贵皮肤，以为自己能像KPL选手一样丝滑连招。然而现实是，你一顿操作猛如虎，一看伤害二百五，一旦连招被打断，你的心态瞬间爆炸。你用最贵的皮，挨最毒的打，生动诠释了什么叫“又菜又爱破防的氪金笨蛋”。"
+        },
+        "四大皆空型": {
+            "小乔": "你是峡谷里的和平鸽！“对不起，我又吹歪啦！”你一边疯狂空二技能，一边给队友发抱歉。你的态度好到让队友连喷你都觉得有罪恶感。你唯一的输出全靠大招的自动索敌，生动证明了在这个游戏里，只要脾气够好、懂得道歉，菜也是可以被原谅的。",
+            "安琪拉": "你是一个底盘失控的自走炮塔。你的二技能永远和敌人擦肩而过，大招更是经常反向烧烤空气。你在团战中提供的最大价值就是绚丽的光污染。不过，由于你的清线速度确实快，只要你瞎猫碰上死耗子秒掉一次敌方C位，队友就会立刻把你供起来。",
+            "马可波罗": "又毒舌又手残的终极缝合怪。一技能一梭子子弹全打在河蟹上，大招转进人堆0能量瞬间暴毙，然后躺在地上打字怒喷队友不跟。你沉浸在“我是手法大C”的幻想中无法自拔，你的真实伤害只存在于你的嘴里，可谓是实战0输出，开麦1v5。"
+        },
+        "团战蒸发型": {
+            "马可波罗": "你是个极其外向的“嘴强王者”。BP阶段疯狂开麦要位置，信誓旦旦包带飞。一到打团，你总是第一个用位移接对面的控制，零点一秒直接从地图上消失。你的社交能力远超你的生存能力，你是对面刺客最喜欢的那种“话多且脆”的优质提款机。",
+            "伽罗": "你成天在语音里喊“保我保我，我后期无敌！”但你的走位就像是个无头苍蝇，永远站在对面刺客最容易够到的地方。你是一个拿着长弓的超级兵，只要对面对你吹一口气，你就立刻融化。你的价值就是用生命为队友测出对面的爆发伤害究竟有多高。",
+            "元歌": "你看了一万遍“1433223”的教学，以为自己是个没有感情的刺客。实战中，你不仅沉默寡言，而且连自己本体在哪都找不到。你操作着傀儡在前面乱晃，本体却在草丛里被对面的辅助活活A死。你的操作过于复杂，复杂到把自己都给绕蒸发了。"
+        },
+        "天赋型选手": {
+            "马超": "你是峡谷里最耀眼（也最吵闹）的冷锋！你一边用极其细腻的戳刺在敌阵中七进七出，一边在语音频道里大喊“看我位置！看我位置！”。你有绝对的实力支撑你的张扬，你不仅要赢，还要赢得全场瞩目，是个极度需要赞美的高调野王。",
+            "东方曜": "你和曜的英雄设定完美融合：话痨、花里胡哨、且确实有点东西。你在人群中穿梭拉扯，技能特效闪瞎狗眼，嘴里的语音播报和手上的操作一样没停过。你虽然有点臭屁，但当你真正一打三反杀时，队友也只能乖乖打出“666”。",
+            "澜": "冷酷无情的峡谷收割机。你全场一言不发，像一条蛰伏在深海的鲨鱼。你极其冷静地规划刷野路线，只在对面残血时瞬间下潜出击，拿下四杀后又默默回到野区。你是所有玩家在绝望逆风时，最想看到的那位没有感情的杀手代练。"
+        },
+        "五杀妄想型": {
+            "貂蝉": "你是一个极度贪婪的梦想家。你吃着中线、蹭着野区，拿着全场最高的经济，总幻想自己能在人群中翩翩起舞一打五。然后你二技能直接跳进对面五个壮汉的包围圈，吃到一个硬控瞬间暴毙。你的自信让人钦佩，但你的智商实在令人抓狂。",
+            "亚瑟": "穷横穷横的初代莽夫。你完全不在乎自己的经济面板，你的眼里只有红色的血条。你开着一技能，举着大宝剑，敢从对面一塔一路追着残血砍到对面高地。虽然大概率是进去送死，但你这种“不服就是干”的愣头青精神，确实是峡谷里不可多得的喜剧元素。"
+        },
+        "永远发育型": {
+            "李信": "一个极其理智的单机塔防玩家。你多半玩的是暗信，带个惩击，一辈子住在对面的二塔和高地之间。队友在龙坑4v5打得头破血流，你在上路岁月静好地偷塔。你用近乎机器人的规律执行力，生生把一款团队竞技游戏玩成了单人跑酷拆迁模拟器。",
+            "韩信": "你是峡谷里最忙碌的“吸血鬼”。你的眼里只有红蓝buff和三路兵线，你的位移技能全用来赶路抢钱。打完一局，你经济全场第一，输出全场倒数第二。虽然你打团毫无作为，但必须承认，你带线断兵的牵制力，偶尔也能把对面恶心到投降。",
+            "刘禅": "你玩个辅助位，却操着一颗拆迁办主任的心。你经常丢下自家的射手不管，一个人跑到对面的塔下开着大转圈圈。你对敌方防御塔有着变态般的执念，这种抽象的发育方式虽然让队友血压飙升，但你每次强拆成功的样子，确实像个无情的推土机。"
+        },
+        "压力队友型": {
+            "裴擒虎": "你确实有极高的游戏理解，知道什么时候反野什么时候控龙。但你是个极权的峡谷独裁者！只要队友的行动慢了0.5秒没有跟上你的节奏，你就会瞬间化身为祖安猛虎，打字速度比你的平A还快。赢了游戏，输了人品，你让这局排位变得像在坐牢。",
+            "宫本武藏": "你的游戏理解非常刻板——“我大招锁了对面射手并且换掉了，我任务就完成了，剩下的打不过就是你们这群废物的锅！”你总是冲动地一换一，然后躺在黑白屏幕前开始疯狂压力队友。你的视野极其狭隘，你的嘴巴极其恶毒。",
+            "狄仁杰": "一个没有走位、没有意识，却脾气比牛魔还大的射手。你走位靠前被秒，怪辅助不保；你大招扔空被单杀，怪打野不抓。你自诩为峡谷的治安官，实际上是个到处乱咬人的巨婴。你手里的令牌打不出伤害，但你打字的键盘却敲得震天响。"
+        },
+        "泉水指挥型": {
+            "不知火舞": "你选了一个极其吃操作的法刺，却只有一个指挥官的心。你总是极其莽撞地滚进人堆，空掉扇子，连大招都没按出来就光速阵亡。然后你在漫长的复活时间里，化身KPL名教头，对着屏幕指点江山，用最菜的操作，下最专业的指导棋。",
+            "戈娅": "你是那个开着沙地摩托在团战边缘疯狂OB的监工。你捏着大招迟迟不放，一边漂移一边开语音逼逼赖赖“看我看我，跟我上”。你几乎不承受任何风险，却总是在团战结束后，对那些为了保护你而战死的队友进行全方位的战术批判。",
+            "王昭君": "全峡谷最安全的键盘侠。你永远躲在塔下，放个大招清完线就往后撤。因为你极度猥琐，所以你几乎不死；正因为你不死，你觉得全队就你玩得最好。你站在道德制高点上，一边看着灰屏幕的队友，一边悠闲地打字：“你们干嘛要上啊？”"
+        },
+        "CPDD型": {
+            "露娜": "你苦练月下无限连，只为了在你的CP面前装一个最完美的B。你在人群中飞来飞去，把对面秀得头晕眼花，其实你自己也快眼花了。对你来说，排位赛就是你的个人求偶展示台，只要能听到麦克风里那句“哇，好帅”，这局掉大分也值了。",
+            "上官婉儿": "你背熟了“2331333”的起飞公式，只为了能在关键时刻飞上天，帮你的搭子补掉那最后一丝血的人头。虽然你经常在天上飞错方向，或者落地后被群殴致死，但只要能在空中画出那华丽的笔墨，你的浪漫交友KPI就算是超额完成了。",
+            "朵莉亚": "你把操作难度降到了物理最低点。你的存在意义就是跟着你的“野王哥哥”，在水里游来游去，然后按一下大招给他刷新技能。你完美诠释了什么是“挂件的极致”，这是一款真正的社交游戏，而你，就是那个最成功的社交达人。"
+        },
+        "峡谷公务员": {
+            "墨子": "你是峡谷里最标准的中产阶级打工人。你穿着龙骑士，站在屏幕外安全地打着二技能。你既不上去卖，也不怎么C，一炮一炮地混着助攻。你的情绪极其稳定，对局输赢仿佛与你无关，你只是在这个游戏里机械地打卡下班。",
+            "大乔": "你是一个尽职尽责的交通调度员。哪里有难，大招召唤；残血回家，电梯伺候。你不参与任何争吵，只是默默地为团队提供着枯燥但不可或缺的后勤服务。你没有光芒四射的高光，但你的存在，是维系这支野鸡团队不解散的最后底线。",
+            "苍": "默默无闻的基层老黄牛。没有花里胡哨的皮肤，只有脚踏实地的平A。你骑着狼在边路或者野区辛勤劳作，该抗压抗压，该输出输出。你忍受着枯燥的对局和糟糕的队友，情绪如同一潭死水。你太平凡了，平凡到这局赢了都没人想起来给你点个赞。"
+        },
+        "抽象怪": {
+            "百里守约": "你是全峡谷最让队友绝望的毒瘤。你拿着枪在最后排瞄准半天，然后完美错过所有敌人。你把MOBA玩成了单机FPS狙击模拟器，并且对自己的准头有着迷之自信。你对团队的精神折磨，远大于你对敌人造成的物理伤害。",
+            "蔡文姬": "你是一个热心肠的迷糊蛋！你出着全法装，开着小车在峡谷里横冲直撞，试图用你那微薄的奶量拯救一个一万血的张飞。你的善良毋庸置疑，但你的游戏理解堪称灾难，你就像个在战场上发创可贴的吉祥物，又可爱又没用。",
+            "孙悟空": "大名鼎鼎的“吉吉国王”！你坚信自己三棒子能敲碎地球，于是你吸干了队友的血，拿了全场最高的经济。结果你跳出去一棒子敲在白起身上，被反甲弹成了残血。你活在自己的暴击美梦里，但留给队友的永远是一地鸡毛。",
+            "西施": "你是一个脑补型战术大师。你的意识预判到了敌方第五层的走位，但你一技能的准星却留在了第一层。你经常能看破对面的所有战术，然后用极其抽象的操作送掉自己。你的大脑是王者，你的双手是青铜。",
+            "司马懿": "你是一个纯粹的“自杀式袭击者”。你利用超远位移精准切入，一套丝滑小连招秒掉对面，然后惊恐地发现自己没有能量逃跑了。你把所有的操作天赋都点在了“如何华丽地进场送人头”上，是一种极致的暴力抽象美学。",
+            "女娲": "堂堂创世神明，被你玩成了建筑工地搬砖的。你放着成吨的伤害不打，专门用矩阵给你的CP造安全屋。谁敢靠近你的搭子，你就把谁推开。你用最高维度的法术技能，干着最低微的保镖工作，把舔狗精神发挥到了神话级别。",
+            "貂蝉": "你对自己的二技能无敌帧有着盲目的信仰。你敢于在只有半血的情况下，一个人跳进敌方泉水去秀操作。你把“送人头”美化成“极限拉扯”，你那迷乱的舞步不仅晃晕了对手，更把自家队友看出了脑血栓。",
+            "盘古": "开天辟地的神，心态却脆得像块饼干。你因为一个跑车兵没补到，就能直接在泉水里挂机摔斧头。你大招的缴械不是用来打团的，而是用来发泄你无能狂怒的。你用极其抽象的暴躁行为，惩罚着另外四个无辜的路人。",
+            "典韦": "彻底疯狂的峡谷疯狗。你完全抛弃了人类的理智和底线，你的眼里只有杀戮和喷人。如果追不上对面，你就会停下来怒喷自家的辅助为什么不给加速。你玩游戏的过程，就是一次狂犬病发作的医学观察记录。",
+            "盾山": "你正常到了极点，反而成了一种巨大的抽象。你选个盾山，举起盾牌往那一站，敌不动我不动，敌一动我转个向。你就像一块有生命的城墙，放弃了所有花里胡哨的想法，用物理意义上的“躺平抗压”熬过了漫长的对局。",
+            "鬼谷子": "你是所有混沌的终极结合体！你开着大招隐身，拉到了对面五个人，却发现自家的四个队友在另一条路上打野猪。你玩着高于当前段位五个维度的抽象战术，不仅敌人看不懂你，队友更是看不懂你。你孤独地站在峡谷的智商巅峰，与空气斗智斗勇。"
+        }
+    };
+
+    /* =========================================================
+       4.5 本命英雄专属头像链接库 (Beta 5.2 预留口)
+       在这里填入对应英雄的照片链接即可！
+       ========================================================= */
+    const heroImagesData = {
+        "吕布": "https://img.cdn1.vip/i/69dfa976bcef7_1776265590.webp",
+        "后羿": "https://img.cdn1.vip/i/69dfa97872053_1776265592.webp",
+        "米莱狄": "https://img.cdn1.vip/i/69dfa994f0e9e_1776265620.webp",
+        "武则天": "https://img.cdn1.vip/i/69dfae4346be7_1776266819.webp",
+        "嫦娥": "https://img.cdn1.vip/i/69dfa97461a0e_1776265588.webp",
+        "西施": "https://img.cdn1.vip/i/69dfa971eec0c_1776265585.webp",
+        "瑶": "https://img.cdn1.vip/i/69dfa97c03b60_1776265596.webp",
+        "花木兰": "https://img.cdn1.vip/i/69dfa9739dd55_1776265587.webp",
+        "小乔": "https://img.cdn1.vip/i/69dfaec5194b5_1776266949.webp",
+        "安琪拉": "https://img.cdn1.vip/i/69dfa973d916f_1776265587.webp",
+        "马可波罗": "https://img.cdn1.vip/i/69dfa972cc98e_1776265586.webp",
+        "伽罗": "https://img.cdn1.vip/i/69dfa97301486_1776265587.webp",
+        "元歌": "https://img.cdn1.vip/i/69dfaeca3f84d_1776266954.webp",
+        "马超": "https://img.cdn1.vip/i/69dfa96a9ddc3_1776265578.webp",
+        "东方曜": "https://img.cdn1.vip/i/69dfa967d4e9f_1776265575.webp",
+        "澜": "https://img.cdn1.vip/i/69dfa94b84b02_1776265547.webp",
+        "貂蝉": "https://img.cdn1.vip/i/69dfa9503d390_1776265552.webp",
+        "亚瑟": "https://img.cdn1.vip/i/69dfa968dc7e8_1776265576.webp",
+        "李信": "https://img.cdn1.vip/i/69dfa94c71e04_1776265548.webp",
+        "韩信": "https://img.cdn1.vip/i/69dfa9685ef52_1776265576.webp",
+        "刘禅": "https://img.cdn1.vip/i/69dfa969a91ad_1776265577.webp",
+        "裴擒虎": "https://img.cdn1.vip/i/69dfa969b1498_1776265577.webp",
+        "宫本武藏": "https://img.cdn1.vip/i/69dfa967ad887_1776265575.webp",
+        "狄仁杰": "https://img.cdn1.vip/i/69dfa954d1bee_1776265556.webp",
+        "不知火舞": "https://img.cdn1.vip/i/69dfa96883f74_1776265576.webp",
+        "戈娅": "https://img.cdn1.vip/i/69dfa968c357c_1776265576.webp",
+        "王昭君": "https://img.cdn1.vip/i/69dfa95563e2e_1776265557.webp",
+        "露娜": "https://img.cdn1.vip/i/69dfaec9f3c0f_1776266953.webp",
+        "上官婉儿": "https://img.cdn1.vip/i/69dfa95475c6f_1776265556.webp",
+        "朵莉亚": "https://img.cdn1.vip/i/69dfaed17b6eb_1776266961.webp",
+        "墨子": "https://img.cdn1.vip/i/69dfa95470a0a_1776265556.webp",
+        "大乔": "https://img.cdn1.vip/i/69dfa956f2280_1776265558.webp",
+        "苍": "https://img.cdn1.vip/i/69dfaec915bce_1776266953.webp",
+        "百里守约": "https://img.cdn1.vip/i/69dfb053dc83c_1776267347.webp",
+        "蔡文姬": "https://img.cdn1.vip/i/69dfaef2880d8_1776266994.webp",
+        "孙悟空": "https://img.cdn1.vip/i/69dfaeca27e4e_1776266954.webp",
+        "司马懿": "https://img.cdn1.vip/i/69dfa9550b41e_1776265557.webp",
+        "女娲": "https://img.cdn1.vip/i/69dfaef1af0f0_1776266993.webp",
+        "盘古": "https://img.cdn1.vip/i/69dfa94734585_1776265543.webp",
+        "典韦": "https://img.cdn1.vip/i/69dfaef1b54d2_1776266993.webp",
+        "盾山": "https://img.cdn1.vip/i/69dfa9463738b_1776265542.webp",
+        "鬼谷子": "https://img.cdn1.vip/i/69dfa9470e8b3_1776265543.webp"
+    };
+
+    /* =========================================================
+       5. 核心渲染与交互逻辑
+       ========================================================= */
+    let currentIndex = 0;
+    let userAnswers = []; 
+    let isAnimating = false; 
+
+    const prevBtn = document.getElementById('prev-btn');
+    const aboutBackBtn = document.getElementById('about-back-btn');
+    const qScreen = document.getElementById('question-screen');
+
+    function switchScreen(fromScreen, toScreen) {
+        fromScreen.classList.remove('active');
+        fromScreen.classList.add('leaving');
+        setTimeout(() => {
+            fromScreen.classList.remove('leaving');
+            toScreen.classList.add('active');
+        }, 400); 
+    }
+
+    function showAbout() {
+        switchScreen(document.getElementById('result-screen'), document.getElementById('about-screen'));
+        aboutBackBtn.style.display = 'flex';
+        aboutBackBtn.style.animation = 'waterDropIn 0.7s var(--spring) forwards';
+    }
+
+    function hideAbout() {
+        switchScreen(document.getElementById('about-screen'), document.getElementById('result-screen'));
+        aboutBackBtn.style.display = 'none';
+    }
+
+    function resetTest() {
+        if (isAnimating) return;
+        currentIndex = 0;
+        userAnswers = [];
+        currentScores = {};
+        isAnimating = false;
+        
+        switchScreen(document.getElementById('result-screen'), document.getElementById('start-screen'));
+        prevBtn.style.display = 'none';
+        
+        setTimeout(() => {
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('question-counter').innerText = `Question 01 / ${questionsData.length}`;
+            document.querySelectorAll('.option-card').forEach(c => {
+                c.classList.remove('selected');
+            });
+        }, 400);
+    }
+
+    function updatePrevButton() {
+        if (currentIndex > 0) {
+            if (prevBtn.style.display !== 'flex') {
+                prevBtn.style.display = 'flex';
+                prevBtn.style.animation = 'none';
+                void prevBtn.offsetWidth; 
+                prevBtn.style.animation = 'waterDropIn 0.7s var(--spring) forwards';
+            }
+        } else {
+            prevBtn.style.display = 'none';
+        }
+    }
+
+    function startTest() {
+        renderQuestionContent(currentIndex, 1);
+        switchScreen(document.getElementById('start-screen'), qScreen); 
+    }
+
+    function generateContentHTML(index) {
+        const qData = questionsData[index];
+        let optionsHTML = '';
+        qData.options.forEach((optText, optIndex) => {
+            const isSelected = userAnswers[index] === optIndex ? 'selected' : '';
+            optionsHTML += `<div class="option-card ${isSelected}" data-index="${optIndex}"><span style="position: relative; z-index: 1;">${optText}</span></div>`;
+        });
+        return {
+            title: qData.question,
+            options: optionsHTML
+        };
+    }
+
+    function renderQuestionContent(targetIndex, direction = 1) {
+        const qNum = targetIndex + 1 < 10 ? `0${targetIndex + 1}` : targetIndex + 1;
+        const qTextEl = document.getElementById('question-text');
+        const optsContainer = document.getElementById('options-container');
+        const htmlData = generateContentHTML(targetIndex);
+
+        const exitOffset = direction === 1 ? '-10px' : '10px'; 
+        
+        qTextEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        qTextEl.style.opacity = 0; qTextEl.style.transform = `translateY(${exitOffset})`;
+        optsContainer.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        optsContainer.style.opacity = 0; optsContainer.style.transform = `translateY(${exitOffset})`;
+
+        setTimeout(() => {
+            document.getElementById('progress-bar').style.width = `${((targetIndex) / questionsData.length) * 100}%`;
+            document.getElementById('question-counter').innerText = `Question ${qNum} / ${questionsData.length}`;
+
+            qTextEl.innerText = htmlData.title;
+            optsContainer.innerHTML = htmlData.options;
+            
+            const enterOffset = direction === 1 ? '10px' : '-10px';
+            qTextEl.style.transition = 'none'; qTextEl.style.transform = `translateY(${enterOffset})`;
+            optsContainer.style.transition = 'none'; optsContainer.style.transform = `translateY(${enterOffset})`;
+            
+            void qTextEl.offsetWidth; 
+            
+            qTextEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            qTextEl.style.opacity = 1; qTextEl.style.transform = 'translateY(0)';
+            optsContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            optsContainer.style.opacity = 1; optsContainer.style.transform = 'translateY(0)';
+            
+            optsContainer.querySelectorAll('.option-card').forEach((optDiv, index) => {
+                optDiv.onclick = (e) => handleOptionSelect(e, index, optDiv);
+            });
+            updatePrevButton(); 
+            setTimeout(() => { isAnimating = false; }, 300); 
+        }, 200); 
+    }
+
+    function handleOptionSelect(event, optIndex, element) {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        document.querySelectorAll('.option-card').forEach(c => {
+            c.classList.remove('selected');
+            const ripples = c.querySelectorAll('.ripple-fill');
+            ripples.forEach(r => r.remove());
+        });
+
+        element.classList.add('selected');
+        userAnswers[currentIndex] = optIndex; 
+
+        const circle = document.createElement("span");
+        const diameter = Math.max(element.clientWidth, element.clientHeight);
+        const radius = diameter / 2;
+        const rect = element.getBoundingClientRect();
+        
+        let x = radius, y = radius;
+        if (event) { x = event.clientX - rect.left; y = event.clientY - rect.top; }
+
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${x - radius}px`; circle.style.top = `${y - radius}px`;
+        circle.classList.add("ripple-fill");
+        element.appendChild(circle);
+
+        setTimeout(() => {
+            currentIndex++;
+            if (currentIndex < questionsData.length) { renderQuestionContent(currentIndex, 1); } 
+            else { startAnalysisAndShowResult(); }
+        }, 350); 
+    }
+
+    function prevQuestion(e) {
+        if (currentIndex <= 0 || isAnimating) return;
+        isAnimating = true;
+        prevBtn.style.display = 'none'; 
+        currentIndex--;
+        renderQuestionContent(currentIndex, -1); 
+    }
+
+    /* =========================================================
+       6. 算法核心：王者荣耀人格测试 Beta 4.51SM 核心算法 
+       ========================================================= */
+    function calculatePersonality() {
+        let s = { 经济: 0, 莽撞: 0, 心态: 0, 操作: 0, 社交: 0, 友善: 0, 财富: 0, 德华: 0, 意识: 0, 瓦值: 0, 常值: 0 };
+        
+        userAnswers.forEach((ansIndex, qIndex) => {
+            let scores = scoresData[qIndex][ansIndex];
+            for (let key in scores) { s[key] += scores[key]; }
+        });
+        currentScores = s; 
+
+        // ==========================================
+        // 【最高优先级：一票否决特判规则】(Beta 4.51SM)
+        // ==========================================
+
+        if (userAnswers[1] === 3 && userAnswers[3] === 3 && userAnswers[4] === 0) {
+            return "压力队友型";
+        }
+
+        if (userAnswers[1] === 1 && userAnswers[2] === 0 && userAnswers[3] === 0 && userAnswers[13] === 0) {
+            return "压力队友型";
+        }
+
+        if (userAnswers[8] === 0 && userAnswers[9] === 2 && userAnswers[11] === 3 && userAnswers[14] === 3 && userAnswers[15] === 1) {
+            return "天赋型选手";
+        }
+
+        if (userAnswers[3] === 2 && userAnswers[4] === 1 && userAnswers[5] === 1 && userAnswers[14] === 0) {
+            return "CPDD型";
+        }
+
+        if (userAnswers[2] !== 0 && 
+            userAnswers[4] !== 0 && 
+            userAnswers[6] === 0 && 
+            userAnswers[8] !== 0 && 
+            userAnswers[9] !== 2 && 
+            userAnswers[10] !== 2 && 
+            userAnswers[12] === 3) {
+            return "峡谷公务员";
+        }
+
+        // ==========================================
+        // 【常规优先级：雷达瀑布流判定】
+        // ==========================================
+        
+        if (s.德华 >= 5 && s.操作 <= 0 && s.心态 <= -1 && s.友善 <= 0) {
+            return "驴德华型";
+        }
+        else if (s.瓦值 >= 5 && s.社交 >= 2 && s.友善 >= 0 && s.常值 <= -1) {
+            return "瓦型";
+        }
+        else if (s.心态 <= -3 && s.友善 <= -3 && s.社交 >= 2) {
+            return "压力队友型";
+        }
+        else if (s.财富 >= 7 && s.社交 >= 1 && s.操作 <= 3) {
+            return "富公富婆型";
+        }
+        else if (s.操作 >= 5 && s.意识 >= 4 && s.莽撞 <= 2 && s.心态 >= 0) {
+            return "天赋型选手";
+        }
+        else if (s.社交 >= 5 && s.意识 >= 3 && s.操作 <= 1 && s.莽撞 <= 0) {
+            return "泉水指挥型";
+        }
+        else if (s.经济 >= 6 && s.社交 <= 0 && s.莽撞 <= 1 && s.意识 >= -1) {
+            return "永远发育型";
+        }
+        else if (s.莽撞 >= 5 && s.操作 >= 2 && s.意识 <= 2 && s.心态 >= -1) {
+            return "五杀妄想型";
+        }
+        else if (s.莽撞 >= 3 && s.操作 <= 0 && s.意识 <= 0) {
+            return "团战蒸发型";
+        }
+        else if (s.操作 <= -3 && s.意识 <= -1) {
+            return "四大皆空型";
+        }
+        else if (s.社交 >= 5 && s.友善 >= 2 && s.瓦值 <= 4 && s.财富 >= 1) {
+            return "CPDD型";
+        }
+        else if (s.常值 >= 2 && s.心态 >= 0 && s.友善 >= 0 && s.莽撞 <= 3) {
+            return "峡谷公务员";
+        }
+        else {
+            return "抽象怪";
+        }
+    }
+
+    /* =========================================================
+       7. 本命英雄精密推测算法
+       ========================================================= */
+    function getPredictedHero(personality, s) {
+        if (personality === "驴德华型") {
+            if (s.社交 >= 2) return "吕布";
+            if (s.社交 < -2) return "后羿";
+            return "米莱狄"; 
+        }
+        if (personality === "瓦型") {
+            if (s.财富 >= 6) return "武则天";
+            return "嫦娥";
+        }
+        if (personality === "富公富婆型") {
+            if (s.心态 >= 5) return "西施";
+            if (s.心态 >= 1 && s.心态 < 5) return "瑶";
+            return "花木兰";
+        }
+        if (personality === "四大皆空型") {
+            if (s.友善 >= 4) return "小乔";
+            if (s.友善 >= 0 && s.友善 < 4) return "安琪拉";
+            return "马可波罗";
+        }
+        if (personality === "团战蒸发型") {
+            if (s.社交 >= 6) return "马可波罗";
+            if (s.社交 >= 2 && s.社交 < 6) return "伽罗";
+            return "元歌";
+        }
+        if (personality === "天赋型选手") {
+            if (s.社交 > 5) return "马超";
+            if (s.社交 > 2 && s.社交 <= 5) return "东方曜";
+            return "澜";
+        }
+        if (personality === "五杀妄想型") {
+            if (s.经济 > 3) return "貂蝉";
+            return "亚瑟";
+        }
+        if (personality === "永远发育型") {
+            if (s.常值 > 4) return "李信";
+            if (s.常值 > -1 && s.常值 <= 4) return "韩信";
+            return "刘禅";
+        }
+        if (personality === "压力队友型") {
+            if (s.意识 > 4) return "裴擒虎";
+            if (s.意识 > -1 && s.意识 <= 4) return "宫本武藏";
+            return "狄仁杰";
+        }
+        if (personality === "泉水指挥型") {
+            if (s.莽撞 > 4) return "不知火舞";
+            if (s.莽撞 > -1 && s.莽撞 <= 4) return "戈娅";
+            return "王昭君";
+        }
+        if (personality === "CPDD型") {
+            if (s.操作 > 5) return "露娜";
+            if (s.操作 > 0 && s.操作 <= 5) return "上官婉儿";
+            return "朵莉亚";
+        }
+        if (personality === "峡谷公务员") {
+            if (s.财富 > 4) return "墨子";
+            if (s.财富 > -1 && s.财富 <= 4) return "大乔";
+            return "苍";
+        }
+        if (personality === "抽象怪") {
+            if (s.德华 > 4) return "百里守约";
+            else if (s.友善 > 5) return "蔡文姬";
+            else if (s.经济 > 5) return "孙悟空";
+            else if (s.意识 > 5) return "西施";
+            else if (s.操作 > 5) return "司马懿";
+            else if (s.瓦值 > 4) return "女娲";
+            else if (s.莽撞 > 4) return "貂蝉";
+            else if (s.心态 < -5) return "盘古";
+            else if (s.友善 < -5) return "典韦";
+            else if (s.常值 > 5) return "盾山";
+            else return "鬼谷子";
+        }
+        return "亚瑟"; 
+    }
+
+    // 结算展示
+    function startAnalysisAndShowResult() {
+        switchScreen(qScreen, document.getElementById('result-screen'));
+        prevBtn.style.display = "none";
+        
+        document.getElementById('result-content').style.display = 'none';
+        document.getElementById('loading-view').style.display = 'flex';
+        
+        const fill = document.getElementById('analysis-fill');
+        const text = document.getElementById('analysis-text');
+        const subtext = document.getElementById('analysis-subtext');
+
+        // 加载时长变为2s-6s完全随机
+        const duration = Math.floor(Math.random() * 4000) + 2000; 
+        const startTime = Date.now();
+
+        const timer = setInterval(() => {
+            let elapsed = Date.now() - startTime;
+            let p = elapsed / duration; 
+            if (p >= 1) p = 1;
+
+            let visualP = 0; 
+            if (p < 0.3) { visualP = (p / 0.3) * 60; subtext.innerText = '提取对局行为锚点...'; } 
+            else if (p < 0.8) { visualP = 60 + ((p - 0.3) / 0.5) * 25; subtext.innerText = '加载十一维潜意识雷达...'; } 
+            else { visualP = 85 + ((p - 0.8) / 0.2) * 15; subtext.innerText = '匹配专属峡谷人格...'; }
+
+            fill.style.width = `${visualP}%`;
+            text.innerText = `ANALYZING... ${Math.floor(visualP)}%`;
+
+            if (p >= 1) {
+                clearInterval(timer);
+                text.innerText = 'COMPLETED! 100%';
+                
+                setTimeout(() => {
+                    const finalPersonality = calculatePersonality();
+                    
+                    let lookupName = finalPersonality;
+                    if (finalPersonality === "四大皆空型" && !resultsData["四大皆空型"]) lookupName = "技能描边型";
+                    if (finalPersonality === "CPDD型" && !resultsData["CPDD型"]) lookupName = "cpdd卡颜卡声型";
+                    if (finalPersonality === "富公富婆型" && !resultsData["富公富婆型"]) lookupName = "富哥富姐型";
+                    
+                    const resultData = resultsData[lookupName] || resultsData["抽象怪"];
+                    
+                    document.getElementById('result-image').src = resultData.img;
+                    document.getElementById('result-name').innerText = finalPersonality;
+                    document.getElementById('result-slogan').innerText = resultData.slogan;
+                    document.getElementById('result-desc-text').innerHTML = resultData.desc;
+
+                    const predictedHero = getPredictedHero(finalPersonality, currentScores);
+                    document.getElementById('hero-name').innerText = predictedHero;
+                    
+                    // 新增：动态替换本命英雄的专属头像（如果没有填链接，则使用占位图）
+                    const heroImgUrl = heroImagesData[predictedHero] || "https://via.placeholder.com/65/E1BEE7/8E24AA?text=Hero";
+                    document.getElementById('hero-image').src = heroImgUrl;
+
+                    let heroDetailText = "你拥有着不可定义的灵魂契合度，系统无法完全解析你的英雄羁绊。";
+                    if (heroDescData[finalPersonality] && heroDescData[finalPersonality][predictedHero]) {
+                        heroDetailText = heroDescData[finalPersonality][predictedHero];
+                    } else if (heroDescData["抽象怪"] && heroDescData["抽象怪"][predictedHero]) {
+                        heroDetailText = heroDescData["抽象怪"][predictedHero];
+                    }
+                    document.getElementById('hero-desc').innerHTML = `<div class="desc-section" style="margin-bottom: 0;"><span class="desc-label">【英雄解析】</span>${heroDetailText}</div>`;
+
+                    document.getElementById('loading-view').style.display = 'none';
+                    document.getElementById('result-content').style.display = 'flex';
+                    isAnimating = false;
+
+                }, 500); 
+            }
+        }, 30); 
+    }
+
+</script>
+</body>
+</html>
